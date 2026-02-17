@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Set realmlist address to current Tailscale IP"
+set -euo pipefail
+
+IP=$(tailscale ip -4)
+docker exec ac-database mysql -uroot -p"$DOCKER_DB_ROOT_PASSWORD" -e "UPDATE acore_auth.realmlist SET address='${IP}' WHERE id=1;"
+echo "Realmlist set to ${IP}"

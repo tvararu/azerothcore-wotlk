@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#MISE description="Generate docker-compose.override.yml if missing"
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+OVERRIDE="$REPO_ROOT/docker-compose.override.yml"
+
+if [[ -f "$OVERRIDE" ]]; then
+  echo "docker-compose.override.yml already exists, skipping."
+  exit 0
+fi
+
+cat > "$OVERRIDE" << 'EOF'
+services:
+  ac-worldserver:
+    tty: false
+    environment:
+      # Sync realm time with host timezone
+      TZ: "Asia/Bangkok"
+      # Required for mod-individual-progression
+      AC_ENABLE_PLAYER_SETTINGS: "1"
+      AC_DBC_ENFORCE_ITEM_ATTRIBUTES: "0"
+      # Enable SOAP API for scripted commands
+      AC_SOAP_ENABLED: "1"
+      AC_SOAP_IP: "0.0.0.0"
+      # Playerbots: enable random bots roaming the world
+      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: "1"
+      # Playerbots: recycle max-level bots back to level 1
+      AC_AI_PLAYERBOT_DOWNGRADE_MAX_LEVEL_BOT: "1"
+      # Playerbots: cycle bots in/out from a larger pool (2x online count)
+      AC_AI_PLAYERBOT_ENABLE_PERIODIC_ONLINE_OFFLINE: "1"
+      # Playerbots: only run bots when a real player is online
+      AC_AI_PLAYERBOT_DISABLED_WITHOUT_REAL_PLAYER: "1"
+      # Playerbots: bots form guilds with nearby bots
+      AC_AI_PLAYERBOT_RANDOM_BOT_GUILD_NEARBY: "1"
+      # Playerbots: bots have quest history matching their level
+      AC_AI_PLAYERBOT_PRE_QUESTS: "1"
+      # Playerbots: enable auto-updates for the playerbots database
+      AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES: "1"
+    ports:
+      # Expose playerbots TCP command server for external tools (OpenClaw)
+      - "8888:8888"
+    volumes:
+      # Mount modules so worldserver can access module SQL at runtime
+      - ./modules:/azerothcore/modules:ro
+EOF
+
+echo "Created docker-compose.override.yml"

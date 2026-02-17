@@ -106,3 +106,12 @@ local.properties
 # ==================
 .cache
 compile_commands.json
+
+# Age encryption key (mise secrets)
+config/secret.key
+
+# Local mise overrides
+mise.local.toml
+
+# Claude
+.claude/*.local.json

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#MISE description="Clone and configure all modules"
+set -euo pipefail
+
+MODULES_DIR="$(git rev-parse --show-toplevel)/modules"
+
+# Module definitions: <directory> <git-url> [pinned-sha]
+# Modules with a pinned SHA are checked out to that commit. Bump manually.
+MODULES=(
+  "mod-aoe-loot        https://github.com/azerothcore/mod-aoe-loot.git"
+  "mod-learn-spells    https://github.com/azerothcore/mod-learn-spells.git"
+  "mod-individual-progression https://github.com/ZhengPeiRu21/mod-individual-progression.git"
+  "mod-playerbots      https://github.com/mod-playerbots/mod-playerbots.git 295f2d2784cfb11b34dc48ff356848ef10b107fd"
+)
+
+for entry in "${MODULES[@]}"; do
+  read -r dir url sha <<< "$entry"
+  target="$MODULES_DIR/$dir"
+  if [[ -d "$target" ]]; then
+    echo "[$dir] Already cloned, fetching..."
+    git -C "$target" fetch origin || echo "[$dir] Fetch failed, skipping"
+  else
+    echo "[$dir] Cloning..."
+    git clone "$url" "$target"
+  fi
+  if [[ -n "$sha" ]]; then
+    echo "[$dir] Pinning to $sha"
+    git -C "$target" checkout "$sha" --quiet
+  else
+    git -C "$target" pull --ff-only || echo "[$dir] Pull failed (maybe on detached HEAD), skipping"
+  fi
+done
+
+# Fixups: mod-individual-progression uses old SQL directory convention (world/ instead of db-world/)
+# Create symlinks so the Docker db-import auto-discovers the SQL files
+IPP_SQL="$MODULES_DIR/mod-individual-progression/data/sql"
+for dir in world auth characters; do
+  link="$IPP_SQL/db-$dir"
+  if [[ ! -L "$link" && -d "$IPP_SQL/$dir" ]]; then
+    ln -s "$dir" "$link"
+    echo "[mod-individual-progression] Created symlink: db-$dir -> $dir"
+  fi
+done
+
+echo ""
+echo "All modules ready. Run 'mise build' to rebuild the server."

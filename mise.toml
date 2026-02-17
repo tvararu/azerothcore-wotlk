@@ -1,0 +1,42 @@
+[tools]
+age = "latest"
+
+[settings.age]
+key_file = "config/secret.key"
+
+[env]
+DOCKER_DB_ROOT_PASSWORD = { age = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBvK1E2OXk0ZHF0L1pHdzkwUFlydDR5LzcrTHd1VjlsS0pYWnorQ2ZreGc4CjY4SG12b25FbTZ0NUNEK3lHUCsydnZ3TzVkUjNpOW8ycUkxTWVBck1DNG8KLT4gIWktZ3JlYXNlIDNEOypgIC1kXQpMYmJScVZuZEFNN1VKcnlkNGVXY0lXL0Voa1hON3d4WVQ3MHNPUVpnVjB4aTRXakpvUXVlNlZDZkZmYTV3Q3VYCk5DeDZJOENiRmZBamNNNk5LWVk5aVpjNHZzWk50d0pubDBCZwotLS0gWUtqcEV1dW13WXFmUExCT0Yvb0Ivd2tNSHZKNVpPaXZhRm9rblR5N1FFbwr9S9IdQgFIg5E8X4STDS3f8zNEv9sIfL8yvjYXlD7JnDKlOy8rMm3wAkm+AqKONKYwezLmd4lhRMbuVfHTvvR5" }
+ADMIN_USERNAME = { age = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBORklCL1E1N0h1QS9nemgwWXZDY0xRaDZJMFk2TEN1WC81VW85dEpTYmp3CmwxTWVkMDd0THZFcEgvbGJpMjRKYXc0bkpSWm55aE90WExiV2QrRmhYeFkKLT4gXWshV00tZ3JlYXNlICtkXnZfIFZpVF0/WjcoIDRvYkY3OyFvCjljaGxXRGxmdEc2OENwVHdINzIzMEpBckkvSXBFRTZLMSs4U0RCaEpmN2xlN2g5SERvZmMyVmZCU3BOMWI4dwotLS0gNm1GdWNDZFFtUUFyYnlDQ3RGcnNjQ2E4ZFpBVCtSbGcvOEl3dEhwV2c5QQrphpdXrK0tkM25OFYJWKwitT3SBxc1o8SEwMiFLvcDceu5aX+0" }
+ADMIN_PASSWORD = { age = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBYVktHTlh3cncxQXZ6ajlYWHdzU3pVMnUxUTRxQldKa244aVA5V3Q1NVZjCjBWTVlsT05yVkgvbzJrR0R0YUN4Vnk3UFErb3h3TmdHV2dVNzVBMWNMcFEKLT4gSC1ncmVhc2UKUnZYME5qdmNvZTZyOTJvWkZCUkpvVUoxa2xOTmJLUUs1UUtKMDBYQU9XejI3cGtHZHV1TGpMZDBsL1AzOWVpNwovRHZKdG1ZNmdMWFFXRXRzTStSOUZJamh5bDJUSWN5bFBoekR4U3JOazJINGtnQQotLS0ga3BmMmdiL3hURzZUU0wvTnlTYU5RczBUZnZIOTRxVy9oNjk0WnNGMW8xQQozqXSl1o7t3oMrNUF4hQP88ZAPnyCKWKGDExmF1yrAJTsgEd2hBM9I4JYRJI+P728" }
+
+[tasks.start]
+description = "Start server (no rebuild)"
+run = "docker compose up -d"
+
+[tasks.build]
+description = "Rebuild and start server"
+run = "docker compose up -d --build"
+
+[tasks.stop]
+description = "Stop server"
+run = "docker compose down"
+
+[tasks.restart]
+description = "Restart server (picks up config changes)"
+run = "docker compose down && docker compose up -d"
+
+[tasks.logs]
+description = "Tail worldserver logs"
+run = "docker compose logs -f ac-worldserver"
+
+[tasks.console]
+description = "Attach to worldserver console (Ctrl+P,Ctrl+Q to detach)"
+run = "docker attach ac-worldserver"
+
+[tasks.status]
+description = "Show container status"
+run = "docker compose ps"
+
+[tasks.db]
+description = "Open MySQL shell"
+run = "docker exec -it ac-database mysql -uroot -p$DOCKER_DB_ROOT_PASSWORD"
