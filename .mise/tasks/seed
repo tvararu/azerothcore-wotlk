@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+#MISE description="Seed fresh DB with realmlist, module SQL, and admin account"
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+mysql_cmd() {
+  docker exec -i ac-database mysql -uroot -p"$DOCKER_DB_ROOT_PASSWORD" "$@" 2>/dev/null
+}
+
+ensure_seed_tracking() {
+  local db="$1"
+  mysql_cmd "$db" <<'SQL'
+CREATE TABLE IF NOT EXISTS `_seed_applied` (
+  `file_key` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+SQL
+}
+
+is_seeded() {
+  local db="$1" key="$2"
+  local count
+  count=$(mysql_cmd -N -e "SELECT COUNT(*) FROM _seed_applied WHERE file_key='$key'" "$db")
+  [[ "$count" -gt 0 ]]
+}
+
+mark_seeded() {
+  local db="$1" key="$2"
+  mysql_cmd -e "INSERT IGNORE INTO _seed_applied (file_key) VALUES ('$key')" "$db"
+}
+
+# Create acore_playerbots database
+echo "Ensuring acore_playerbots database exists..."
+mysql_cmd -e "CREATE DATABASE IF NOT EXISTS acore_playerbots DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
+
+# Apply module base SQL that db-import doesn't auto-process
+echo "Applying module base SQL..."
+for mod_dir in "$REPO_ROOT"/modules/mod-*/; do
+  mod_name="$(basename "$mod_dir")"
+  for db_dir in "$mod_dir"data/sql/*/base/ "$mod_dir"data/sql/db-*/base/; do
+    [[ -d "$db_dir" ]] || continue
+    # Determine target database from directory name
+    case "$(basename "$(dirname "$db_dir")")" in
+      world|db-world)           db="acore_world" ;;
+      auth|db-auth)             db="acore_auth" ;;
+      characters|db-characters) db="acore_characters" ;;
+      playerbots)               db="acore_playerbots" ;;
+      *) continue ;;
+    esac
+    ensure_seed_tracking "$db"
+    for sql_file in "$db_dir"*.sql; do
+      [[ -f "$sql_file" ]] || continue
+      key="$mod_name/$(basename "$sql_file")"
+      if is_seeded "$db" "$key"; then
+        echo "  [$mod_name] $(basename "$sql_file") -> $db (already applied)"
+      else
+        echo "  [$mod_name] $(basename "$sql_file") -> $db"
+        mysql_cmd "$db" < "$sql_file"
+        mark_seeded "$db" "$key"
+      fi
+    done
+  done
+done
+
+echo ""
+echo "Setting realmlist..."
+IP=$(tailscale ip -4)
+mysql_cmd -e "UPDATE acore_auth.realmlist SET address='${IP}' WHERE id=1;"
+echo "Realmlist set to ${IP}"
+
+echo ""
+echo "Creating admin account (safe to re-run if account exists)..."
+docker exec -i ac-worldserver bash -c "echo 'account create $ADMIN_USERNAME $ADMIN_PASSWORD' > /proc/1/fd/0"
+sleep 2
+docker exec -i ac-worldserver bash -c "echo 'account set gmlevel $ADMIN_USERNAME 3 -1' > /proc/1/fd/0"
+
+echo ""
+echo "Done. Admin account '$ADMIN_USERNAME' created with GM level 3."

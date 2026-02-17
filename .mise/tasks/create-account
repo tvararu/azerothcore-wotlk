@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#MISE description="Create account (e.g. mise create-account myuser mypass --gm)"
+set -euo pipefail
+
+GM=false
+ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--gm" ]]; then
+    GM=true
+  else
+    ARGS+=("$arg")
+  fi
+done
+
+USERNAME="${ARGS[0]:-$ADMIN_USERNAME}"
+PASSWORD="${ARGS[1]:-$ADMIN_PASSWORD}"
+
+if [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
+  echo "Usage: mise create-account [username] [password] [--gm]"
+  echo "Defaults to ADMIN_USERNAME/ADMIN_PASSWORD env vars if no args given."
+  exit 1
+fi
+
+ws_cmd() {
+  docker exec -i ac-worldserver bash -c "echo '$1' > /proc/1/fd/0"
+}
+
+echo "Creating account '$USERNAME'..."
+ws_cmd "account create $USERNAME $PASSWORD"
+sleep 2
+
+if [[ "$GM" == true ]]; then
+  echo "Setting GM level 3..."
+  ws_cmd "account set gmlevel $USERNAME 3 -1"
+  sleep 1
+fi
+
+echo "Done."

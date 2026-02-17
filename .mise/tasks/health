@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#MISE description="Check that the project is set up correctly"
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+ERRORS=0
+
+check() {
+  local label="$1" ok="$2"
+  if [[ "$ok" == "true" ]]; then
+    echo "  OK  $label"
+  else
+    echo "  FAIL  $label"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
+echo "Secrets"
+check "config/secret.key exists" \
+  "$([[ -f "$REPO_ROOT/config/secret.key" ]] && echo true || echo false)"
+check "DOCKER_DB_ROOT_PASSWORD is set" \
+  "$([[ -n "${DOCKER_DB_ROOT_PASSWORD:-}" ]] && echo true || echo false)"
+check "ADMIN_USERNAME is set" \
+  "$([[ -n "${ADMIN_USERNAME:-}" ]] && echo true || echo false)"
+check "ADMIN_PASSWORD is set" \
+  "$([[ -n "${ADMIN_PASSWORD:-}" ]] && echo true || echo false)"
+
+echo ""
+echo "Config"
+check "docker-compose.override.yml exists" \
+  "$([[ -f "$REPO_ROOT/docker-compose.override.yml" ]] && echo true || echo false)"
+
+echo ""
+echo "Modules"
+for mod in mod-playerbots mod-aoe-loot mod-learn-spells mod-individual-progression; do
+  check "$mod cloned" \
+    "$([[ -d "$REPO_ROOT/modules/$mod" ]] && echo true || echo false)"
+done
+
+echo ""
+echo "Tools"
+check "Docker running" \
+  "$(docker info &>/dev/null && echo true || echo false)"
+check "Tailscale has IPv4" \
+  "$(tailscale ip -4 &>/dev/null && echo true || echo false)"
+
+echo ""
+echo "Server"
+SERVER_INFO="$(mise cmd '.server info' 2>/dev/null)" && {
+  check "Worldserver responding" "true"
+  echo "$SERVER_INFO" | sed 's/^/      /'
+} || {
+  check "Worldserver responding" "false"
+}
+
+echo ""
+if [[ "$ERRORS" -eq 0 ]]; then
+  echo "All checks passed."
+else
+  echo "$ERRORS check(s) failed."
+  exit 1
+fi
