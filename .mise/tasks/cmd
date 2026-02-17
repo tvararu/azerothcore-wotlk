@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run a worldserver command via SOAP (e.g. mise cmd '.server info')"
+set -euo pipefail
+
+COMMAND="$1"
+RESPONSE=$(curl -sf -u "$ADMIN_USERNAME:$ADMIN_PASSWORD" -H 'Content-Type: text/xml' -d \
+  "<?xml version=\"1.0\" encoding=\"utf-8\"?><SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns1=\"urn:AC\"><SOAP-ENV:Body><ns1:executeCommand><command>${COMMAND}</command></ns1:executeCommand></SOAP-ENV:Body></SOAP-ENV:Envelope>" \
+  http://localhost:7878 2>&1) || { echo "SOAP request failed. Is the server running with SOAP enabled?"; exit 1; }
+echo "$RESPONSE" | sed 's/.*<result>//;s/<\/result>.*//' | sed 's/&#xD;//g;/<?xml/d'

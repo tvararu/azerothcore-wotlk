@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run a SQL query (e.g. mise sql 'SELECT 1')"
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: mise sql 'SELECT ...'"
+  exit 1
+fi
+
+docker exec -i ac-database mysql -uroot -p"$DOCKER_DB_ROOT_PASSWORD" -e "$1" 2>/dev/null
