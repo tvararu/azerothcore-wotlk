@@ -44,3 +44,7 @@ done
 
 echo ""
 echo "All modules ready. Run 'mise build' to rebuild the server."
+
+echo ""
+echo "Applying local patches..."
+mise apply-patches
