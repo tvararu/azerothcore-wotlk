@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#MISE description="Apply local patches to cloned modules"
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PATCHES_DIR="$REPO_ROOT/patches"
+
+if [[ ! -d "$PATCHES_DIR" ]]; then
+  echo "No patches/ directory found, nothing to do."
+  exit 0
+fi
+
+applied=0
+failed=0
+
+for module_dir in "$PATCHES_DIR"/*/; do
+  module="$(basename "$module_dir")"
+  target="$REPO_ROOT/modules/$module"
+
+  if [[ ! -d "$target/.git" ]]; then
+    echo "[$module] Module not cloned at modules/$module, skipping patches"
+    continue
+  fi
+
+  for patch in "$module_dir"*.patch; do
+    [[ -f "$patch" ]] || continue
+    name="$(basename "$patch")"
+
+    if git -C "$target" apply --check "$patch" 2>/dev/null; then
+      echo "[$module] Applying $name"
+      git -C "$target" apply "$patch"
+      ((applied++))
+    elif git -C "$target" apply --check --reverse "$patch" 2>/dev/null; then
+      echo "[$module] $name already applied, skipping"
+    else
+      echo "[$module] FAILED to apply $name — patch may need regeneration"
+      ((failed++))
+    fi
+  done
+done
+
+echo ""
+echo "Patches applied: $applied, already applied: skipped, failed: $failed"
+
+if [[ $failed -gt 0 ]]; then
+  echo "Some patches failed. Regenerate them against the current pinned SHA."
+  exit 1
+fi
