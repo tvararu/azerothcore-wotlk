@@ -1,0 +1,86 @@
+diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
+index 96019402..40b6a77e 100644
+--- a/src/Bot/PlayerbotAI.cpp
++++ b/src/Bot/PlayerbotAI.cpp
+@@ -540,6 +540,12 @@ void PlayerbotAI::HandleCommands()
+             continue;
+         }
+ 
++        if (owner && owner != master &&
++            owner->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
++        {
++            SetReplyTarget(owner);
++        }
++
+         const std::string& command = it->GetCommand();
+         if (command.empty())
+         {
+@@ -554,6 +560,8 @@ void PlayerbotAI::HandleCommands()
+             // helper.ParseChatCommand("help");
+         }
+ 
++        SetReplyTarget(nullptr);
++
+         it = chatCommands.erase(it);
+     }
+ }
+@@ -984,6 +992,12 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
+         return;
+     }
+ 
++    if (fromPlayer && fromPlayer != master &&
++        fromPlayer->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
++    {
++        SetReplyTarget(fromPlayer);
++    }
++
+     if ((filtered.size() > 2 && filtered.substr(0, 2) == "d ") ||
+         (filtered.size() > 3 && filtered.substr(0, 3) == "do "))
+     {
+@@ -1044,6 +1058,8 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
+     {
+         chatCommands.push_back(ChatCommandHolder(filtered, fromPlayer, type));
+     }
++
++    SetReplyTarget(nullptr);
+ }
+ 
+ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
+@@ -2852,6 +2868,16 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
+         ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
+                                      type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL, bot, nullptr, text.c_str());
+         master->SendDirectMessage(&data);
++
++        if (replyTarget && replyTarget != master && replyTarget->IsInWorld())
++        {
++            WorldPacket replyData;
++            ChatHandler::BuildChatPacket(replyData,
++                type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
++                type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL,
++                bot, nullptr, text.c_str());
++            replyTarget->SendDirectMessage(&replyData);
++        }
+     }
+ 
+     return true;
+diff --git a/src/Bot/PlayerbotAI.h b/src/Bot/PlayerbotAI.h
+index 3364b31a..aa28e536 100644
+--- a/src/Bot/PlayerbotAI.h
++++ b/src/Bot/PlayerbotAI.h
+@@ -531,6 +531,8 @@ public:
+     Player* GetBot() { return bot; }
+     Player* GetMaster() { return master; }
+     Player* FindNewMaster();
++    Player* GetReplyTarget() { return replyTarget; }
++    void SetReplyTarget(Player* target) { replyTarget = target; }
+ 
+     // Checks if the bot is really a player. Players always have themselves as master.
+     bool IsRealPlayer() { return master ? (master == bot) : false; }
+@@ -629,6 +631,7 @@ private:
+ protected:
+     Player* bot;
+     Player* master;
++    Player* replyTarget = nullptr;
+     uint32 accountId;
+     AiObjectContext* aiObjectContext;
+     Engine* currentEngine;
