@@ -29,12 +29,12 @@ for module_dir in "$PATCHES_DIR"/*/; do
     if git -C "$target" apply --check "$patch" 2>/dev/null; then
       echo "[$module] Applying $name"
       git -C "$target" apply "$patch"
-      ((applied++))
+      ((++applied))
     elif git -C "$target" apply --check --reverse "$patch" 2>/dev/null; then
       echo "[$module] $name already applied, skipping"
     else
       echo "[$module] FAILED to apply $name — patch may need regeneration"
-      ((failed++))
+      ((++failed))
     fi
   done
 done
