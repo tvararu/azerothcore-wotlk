@@ -115,3 +115,6 @@ mise.local.toml
 
 # Claude
 .claude/*.local.json
+
+# Patches
+!patches/**/*.patch
