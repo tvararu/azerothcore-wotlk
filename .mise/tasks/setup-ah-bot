@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#MISE description="Configure AH bot env vars in docker-compose.override.yml (idempotent)"
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+OVERRIDE="$REPO_ROOT/docker-compose.override.yml"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  mise setup-ah-bot <account_username> [character_name]
+
+Behavior:
+  - Ensures docker-compose.override.yml exists (runs 'mise init' if missing)
+  - Resolves account id from acore_auth.account by username
+  - Optionally resolves character guid from acore_characters.characters by character name (must belong to that account)
+  - Idempotently upserts:
+      AC_AUCTION_HOUSE_BOT_ENABLE_SELLER = 1
+      AC_AUCTION_HOUSE_BOT_ENABLE_BUYER  = 1
+      AC_AUCTION_HOUSE_BOT_ACCOUNT       = <resolved account id>
+      AC_AUCTION_HOUSE_BOT_GUID          = <resolved guid or 0>
+
+Notes:
+  - If the account does not exist, create it first (e.g. 'mise create-account ...').
+  - Restart with 'mise restart' after updating overrides.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || $# -lt 1 || $# -gt 2 ]]; then
+  usage
+  exit $([[ $# -ge 1 ]] && [[ "${1:-}" =~ ^-h|--help$ ]] && echo 0 || echo 1)
+fi
+
+ACCOUNT_USERNAME="$1"
+CHAR_NAME="${2:-}"
+
+if [[ ! -f "$OVERRIDE" ]]; then
+  echo "docker-compose.override.yml missing; generating with 'mise init'..."
+  mise init
+fi
+
+sql() {
+  docker exec -i ac-database mysql -N -B -uroot -p"$DOCKER_DB_ROOT_PASSWORD" -e "$1" 2>/dev/null
+}
+
+escape_sql() {
+  local v="$1"
+  printf '%s' "${v//\'/\'\'}"
+}
+
+upsert_env_key() {
+  local key="$1"
+  local value="$2"
+  local line="      ${key}: \"${value}\""
+  local tmp
+  tmp="$(mktemp)"
+
+  if rg -q "^      ${key}:" "$OVERRIDE"; then
+    awk -v key="$key" -v line="$line" '
+      $0 ~ "^      " key ":" { print line; next }
+      { print }
+    ' "$OVERRIDE" > "$tmp"
+  elif rg -q "^      AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES:" "$OVERRIDE"; then
+    awk -v line="$line" '
+      { print }
+      $0 ~ /^      AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES:/ { print line }
+    ' "$OVERRIDE" > "$tmp"
+  else
+    awk -v line="$line" '
+      { print }
+      $0 ~ /^    environment:/ { print line; done=1 }
+    ' "$OVERRIDE" > "$tmp"
+  fi
+
+  mv "$tmp" "$OVERRIDE"
+}
+
+escaped_user="$(escape_sql "$ACCOUNT_USERNAME")"
+accountId="$(sql "SELECT id FROM acore_auth.account WHERE username='${escaped_user}' LIMIT 1;")"
+
+if [[ -z "$accountId" ]]; then
+  echo "Account '${ACCOUNT_USERNAME}' not found."
+  echo "Create it first, then rerun:"
+  echo "  mise create-account ${ACCOUNT_USERNAME} <password>"
+  exit 1
+fi
+
+guid="0"
+if [[ -n "$CHAR_NAME" ]]; then
+  escaped_char="$(escape_sql "$CHAR_NAME")"
+  guid="$(sql "SELECT guid FROM acore_characters.characters WHERE account=${accountId} AND name='${escaped_char}' LIMIT 1;")"
+  if [[ -z "$guid" ]]; then
+    echo "Character '${CHAR_NAME}' not found on account id ${accountId}."
+    echo "Create the character in-game (or pass a valid one), then rerun."
+    exit 1
+  fi
+fi
+
+upsert_env_key "AC_AUCTION_HOUSE_BOT_ENABLE_SELLER" "1"
+upsert_env_key "AC_AUCTION_HOUSE_BOT_ENABLE_BUYER" "1"
+upsert_env_key "AC_AUCTION_HOUSE_BOT_ACCOUNT" "$accountId"
+upsert_env_key "AC_AUCTION_HOUSE_BOT_GUID" "$guid"
+
+echo "Updated docker-compose.override.yml:"
+echo "  AC_AUCTION_HOUSE_BOT_ENABLE_SELLER=1"
+echo "  AC_AUCTION_HOUSE_BOT_ENABLE_BUYER=1"
+echo "  AC_AUCTION_HOUSE_BOT_ACCOUNT=${accountId}"
+echo "  AC_AUCTION_HOUSE_BOT_GUID=${guid}"
+echo ""
+echo "Next:"
+echo "  mise restart"
