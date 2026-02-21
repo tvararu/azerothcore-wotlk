@@ -6,10 +6,13 @@ index 96019402..40b6a77e 100644
              continue;
          }
  
-+        if (owner && owner != master &&
-+            owner->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
++        if (owner && owner != master)
 +        {
-+            SetReplyTarget(owner);
++            if (WorldSession* session = owner->GetSession(); session &&
++                session->GetSecurity() >= SEC_GAMEMASTER)
++            {
++                SetReplyTarget(owner);
++            }
 +        }
 +
          const std::string& command = it->GetCommand();
@@ -28,10 +31,13 @@ index 96019402..40b6a77e 100644
          return;
      }
  
-+    if (fromPlayer && fromPlayer != master &&
-+        fromPlayer->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
++    if (fromPlayer && fromPlayer != master)
 +    {
-+        SetReplyTarget(fromPlayer);
++        if (WorldSession* session = fromPlayer->GetSession(); session &&
++            session->GetSecurity() >= SEC_GAMEMASTER)
++        {
++            SetReplyTarget(fromPlayer);
++        }
 +    }
 +
      if ((filtered.size() > 2 && filtered.substr(0, 2) == "d ") ||
