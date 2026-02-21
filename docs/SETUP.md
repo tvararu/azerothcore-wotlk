@@ -36,6 +36,9 @@ mise setup-modules    # Clones all modules (see .mise/tasks/setup-modules for li
 mise init             # Generates docker-compose.override.yml
 ```
 
+Default module set: `mod-playerbots`, `mod-ah-bot`, `mod-aoe-loot`,
+`mod-learn-spells`, and `mod-individual-progression`.
+
 ### 4. Build and start
 
 ```bash

@@ -32,7 +32,7 @@ check "docker-compose.override.yml exists" \
 
 echo ""
 echo "Modules"
-for mod in mod-playerbots mod-aoe-loot mod-learn-spells mod-individual-progression; do
+for mod in mod-playerbots mod-aoe-loot mod-ah-bot mod-learn-spells mod-individual-progression; do
   check "$mod cloned" \
     "$([[ -d "$REPO_ROOT/modules/$mod" ]] && echo true || echo false)"
 done
