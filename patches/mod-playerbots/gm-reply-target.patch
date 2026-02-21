@@ -18,6 +18,7 @@ index 96019402..40b6a77e 100644
          const std::string& command = it->GetCommand();
          if (command.empty())
          {
++            SetReplyTarget(nullptr);
 @@ -554,6 +560,8 @@ void PlayerbotAI::HandleCommands()
              // helper.ParseChatCommand("help");
          }
