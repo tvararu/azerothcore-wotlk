@@ -8,6 +8,7 @@ MODULES_DIR="$(git rev-parse --show-toplevel)/modules"
 # Modules with a pinned SHA are checked out to that commit. Bump manually.
 MODULES=(
   "mod-aoe-loot        https://github.com/azerothcore/mod-aoe-loot.git"
+  "mod-ah-bot          https://github.com/azerothcore/mod-ah-bot.git"
   "mod-learn-spells    https://github.com/azerothcore/mod-learn-spells.git"
   "mod-individual-progression https://github.com/ZhengPeiRu21/mod-individual-progression.git"
   "mod-playerbots      https://github.com/mod-playerbots/mod-playerbots.git 295f2d2784cfb11b34dc48ff356848ef10b107fd"
