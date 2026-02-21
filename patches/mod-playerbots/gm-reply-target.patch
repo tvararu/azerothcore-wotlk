@@ -1,11 +1,11 @@
-diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
-index 96019402..40b6a77e 100644
 --- a/src/Bot/PlayerbotAI.cpp
 +++ b/src/Bot/PlayerbotAI.cpp
-@@ -540,6 +540,12 @@ void PlayerbotAI::HandleCommands()
+@@ -538,11 +538,21 @@
+         {
+             it = chatCommands.erase(it);
              continue;
-         }
- 
++        }
++
 +        if (owner && owner != master)
 +        {
 +            if (WorldSession* session = owner->GetSession(); session &&
@@ -13,13 +13,16 @@ index 96019402..40b6a77e 100644
 +            {
 +                SetReplyTarget(owner);
 +            }
-+        }
-+
+         }
+ 
          const std::string& command = it->GetCommand();
          if (command.empty())
          {
 +            SetReplyTarget(nullptr);
-@@ -554,6 +560,8 @@ void PlayerbotAI::HandleCommands()
+             it = chatCommands.erase(it);
+             continue;
+         }
+@@ -554,6 +564,8 @@
              // helper.ParseChatCommand("help");
          }
  
@@ -28,10 +31,11 @@ index 96019402..40b6a77e 100644
          it = chatCommands.erase(it);
      }
  }
-@@ -984,6 +992,12 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
-         return;
-     }
+@@ -918,6 +930,15 @@
  
+     if (type == CHAT_MSG_SYSTEM)
+         return;
++
 +    if (fromPlayer && fromPlayer != master)
 +    {
 +        if (WorldSession* session = fromPlayer->GetSession(); session &&
@@ -40,11 +44,10 @@ index 96019402..40b6a77e 100644
 +            SetReplyTarget(fromPlayer);
 +        }
 +    }
-+
-     if ((filtered.size() > 2 && filtered.substr(0, 2) == "d ") ||
-         (filtered.size() > 3 && filtered.substr(0, 3) == "do "))
+ 
+     if (text.find(sPlayerbotAIConfig.commandSeparator) != std::string::npos)
      {
-@@ -1044,6 +1058,8 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
+@@ -1044,6 +1065,8 @@
      {
          chatCommands.push_back(ChatCommandHolder(filtered, fromPlayer, type));
      }
@@ -53,7 +56,7 @@ index 96019402..40b6a77e 100644
  }
  
  void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
-@@ -2852,6 +2868,16 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
+@@ -2852,6 +2875,15 @@
          ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
                                       type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL, bot, nullptr, text.c_str());
          master->SendDirectMessage(&data);
@@ -61,20 +64,17 @@ index 96019402..40b6a77e 100644
 +        if (replyTarget && replyTarget != master && replyTarget->IsInWorld())
 +        {
 +            WorldPacket replyData;
-+            ChatHandler::BuildChatPacket(replyData,
-+                type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
-+                type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL,
-+                bot, nullptr, text.c_str());
++            ChatHandler::BuildChatPacket(replyData, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
++                                         type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL, bot, nullptr,
++                                         text.c_str());
 +            replyTarget->SendDirectMessage(&replyData);
 +        }
      }
  
      return true;
-diff --git a/src/Bot/PlayerbotAI.h b/src/Bot/PlayerbotAI.h
-index 3364b31a..aa28e536 100644
 --- a/src/Bot/PlayerbotAI.h
 +++ b/src/Bot/PlayerbotAI.h
-@@ -531,6 +531,8 @@ public:
+@@ -531,6 +531,8 @@
      Player* GetBot() { return bot; }
      Player* GetMaster() { return master; }
      Player* FindNewMaster();
@@ -83,7 +83,7 @@ index 3364b31a..aa28e536 100644
  
      // Checks if the bot is really a player. Players always have themselves as master.
      bool IsRealPlayer() { return master ? (master == bot) : false; }
-@@ -629,6 +631,7 @@ private:
+@@ -629,6 +631,7 @@
  protected:
      Player* bot;
      Player* master;
