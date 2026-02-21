@@ -21,10 +21,11 @@ The patch is stored as a git-format `.patch` file in `patches/mod-playerbots/` a
 - Add `Player* replyTarget = nullptr;` in the `protected:` section near `Player* master;` (line 631)
 - Add `GetReplyTarget()` / `SetReplyTarget()` accessors near `GetMaster()` (line 532)
 
-### PlayerbotAI.cpp — two dispatch sites
+### PlayerbotAI.cpp — three dispatch sites
 
-1. **`HandleCommands()`** (lines 527-558) — set `replyTarget` before `ParseChatCommand()`, clear after
-2. **`HandleCommand()`** (line 911+) — set `replyTarget` around immediate-execution paths (`DoSpecificAction`, etc.) that bypass the queue
+1. **`HandleCommands()`** — set `replyTarget` before `ParseChatCommand()` (no clear here — async)
+2. **`HandleCommand()`** — set `replyTarget` on entry for immediate-execution paths (`DoSpecificAction`, etc.) that bypass the queue (no clear here either — the queued path is async)
+3. **`UpdateAIInternal()`** — clear `replyTarget` after `DoNextAction()`, once the engine has actually processed the triggered actions
 
 ### PlayerbotAI.cpp — TellMasterNoFacing (line 2824)
 
@@ -42,7 +43,7 @@ After `master->SendDirectMessage(&data)` on line 2854, build a duplicate packet 
 - Master always receives the message (copy to GM, not redirect)
 - Non-GM players still get rejected by the security check
 - No changes to any action class
-- `replyTarget` is cleared after each command dispatch, no state leakage
+- `replyTarget` is cleared once per tick after `DoNextAction()` in `UpdateAIInternal`, no state leakage
 - `replyTarget->IsInWorld()` guard prevents crash if GM disconnects mid-command
 
 ## Pinned SHA workflow
