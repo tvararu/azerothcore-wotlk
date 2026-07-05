@@ -32,14 +32,15 @@ for entry in "${MODULES[@]}"; do
   fi
 done
 
-# Fixups: mod-individual-progression uses old SQL directory convention (world/ instead of db-world/)
-# Create symlinks so the Docker db-import auto-discovers the SQL files
+# Fixup removed 2026-07: db-import now scans the old SQL directory convention
+# (world/ etc.) natively, and the db-<dir> symlinks made it see every file
+# twice ("Duplicate filename" fatal). Drop stale symlinks from older checkouts.
 IPP_SQL="$MODULES_DIR/mod-individual-progression/data/sql"
 for dir in world auth characters; do
   link="$IPP_SQL/db-$dir"
-  if [[ ! -L "$link" && -d "$IPP_SQL/$dir" ]]; then
-    ln -s "$dir" "$link"
-    echo "[mod-individual-progression] Created symlink: db-$dir -> $dir"
+  if [[ -L "$link" ]]; then
+    rm "$link"
+    echo "[mod-individual-progression] Removed stale symlink: db-$dir"
   fi
 done
 
