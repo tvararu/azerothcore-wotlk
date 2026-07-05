@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#MISE description="Pin locally-built images so compose never pulls upstream silently"
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Read the tag the compose project currently resolves to (default master)
+CURRENT_TAG="$(grep -oP '(?<=^DOCKER_IMAGE_TAG=).*' .env 2>/dev/null || echo master)"
+NEW_TAG="pinned-$(date +%Y%m%d)"
+
+if [[ "$CURRENT_TAG" == "$NEW_TAG" ]]; then
+  echo "Already pinned to $NEW_TAG, nothing to do."
+  exit 0
+fi
+
+for svc in db-import worldserver authserver client-data tools; do
+  img="acore/ac-wotlk-$svc"
+  if docker image inspect "$img:$CURRENT_TAG" >/dev/null 2>&1; then
+    docker tag "$img:$CURRENT_TAG" "$img:$NEW_TAG"
+    echo "Tagged $img:$NEW_TAG"
+  else
+    echo "Skipped $img (no local :$CURRENT_TAG image)"
+  fi
+done
+
+echo "DOCKER_IMAGE_TAG=$NEW_TAG" > .env
+echo ""
+echo "Pinned to $NEW_TAG (.env updated)."
+echo "The tag does not exist on Docker Hub, so any accidental pull fails loudly"
+echo "instead of silently replacing local builds. Rebuilds via 'mise build'"
+echo "update the pinned tag in place. Re-run 'mise pin' to snapshot a new date."
