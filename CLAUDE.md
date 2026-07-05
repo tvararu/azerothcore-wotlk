@@ -255,7 +255,9 @@ Always run `git log -n 5` first to match existing style. Never use `--oneline` �
 - `tty: false` is set in the override so that scripted commands can write to the worldserver's stdin via `/proc/1/fd/0`
 - SOAP requires `AC_SOAP_IP: "0.0.0.0"` to be reachable from the host (default binds to 127.0.0.1 inside the container)
 - Docker `COPY` does not follow symlinks — module SQL with non-standard directory names must be applied from the host (handled by `mise seed`)
-- `ac-db-import` only processes module `updates/` SQL, not `base/` — module base SQL is applied by `mise seed` directly via mysql
+- `ac-db-import` (since the Jul 2026 core) scans module SQL itself, including `base/` and old-convention dirs (`world/` etc.) — never create `db-*` symlinks alongside them, duplicate filenames abort the import. `mise seed` remains for data seeded before this (tracked in `_seed_applied`, invisible to db-import; a `CREATE TABLE` collision needs a manual `DROP` once)
+- Never run `docker compose` directly for lifecycle operations — secrets (`DOCKER_DB_ROOT_PASSWORD`) are only injected through mise tasks; raw compose recreates containers with default credentials and the DB healthcheck fails
+- Images are pinned via `DOCKER_IMAGE_TAG` in `.env` (`mise pin`) so compose never silently pulls upstream `:master` — a pull once replaced the local playerbots build and fast-forwarded the DB schema six months. `mise build` rebuilds in place under the pinned tag; re-run `mise pin` to snapshot a new date
 - The worldserver caches DB tables (like `acore_string`) at boot — SQL applied after startup requires `mise stop && mise start` to take effect
 - The worldserver Docker image only contains the compiled binary, not module source/SQL — modules that need runtime SQL access (like mod-playerbots) require a volume mount in the override
 - WoW account passwords have a 16-character client hard limit
