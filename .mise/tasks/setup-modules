@@ -11,7 +11,7 @@ MODULES=(
   "mod-ah-bot          https://github.com/azerothcore/mod-ah-bot.git"
   "mod-learn-spells    https://github.com/azerothcore/mod-learn-spells.git"
   "mod-individual-progression https://github.com/ZhengPeiRu21/mod-individual-progression.git"
-  "mod-playerbots      https://github.com/mod-playerbots/mod-playerbots.git a119a6de69d2730d9f40fd89d89de2a05aeace19"
+  "mod-playerbots      https://github.com/mod-playerbots/mod-playerbots.git 7bae1b5c58c76a0aa20381155edc08096d1485b2"
 )
 
 for entry in "${MODULES[@]}"; do
