@@ -1,8 +1,8 @@
 diff --git i/src/Bot/PlayerbotAI.cpp w/src/Bot/PlayerbotAI.cpp
-index 96019402..774f98ef 100644
+index 7a7ae33c..544a66e8 100644
 --- i/src/Bot/PlayerbotAI.cpp
 +++ w/src/Bot/PlayerbotAI.cpp
-@@ -516,6 +516,8 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
+@@ -559,6 +559,8 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
  
      DoNextAction(minimal);
  
@@ -11,11 +11,11 @@ index 96019402..774f98ef 100644
      if (pmo)
          pmo->finish();
  }
-@@ -540,6 +542,15 @@ void PlayerbotAI::HandleCommands()
+@@ -583,6 +585,15 @@ void PlayerbotAI::HandleCommands()
              continue;
          }
  
-+        if (owner && owner != master)
++        if (owner != master)
 +        {
 +            if (WorldSession* session = owner->GetSession(); session &&
 +                session->GetSecurity() >= SEC_GAMEMASTER)
@@ -24,10 +24,10 @@ index 96019402..774f98ef 100644
 +            }
 +        }
 +
-         const std::string& command = it->GetCommand();
+         std::string const& command = it->GetCommand();
          if (command.empty())
          {
-@@ -919,6 +930,15 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
+@@ -963,6 +974,15 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
      if (type == CHAT_MSG_SYSTEM)
          return;
  
@@ -43,15 +43,7 @@ index 96019402..774f98ef 100644
      if (text.find(sPlayerbotAIConfig.commandSeparator) != std::string::npos)
      {
          std::vector<std::string> commands;
-@@ -1044,6 +1064,7 @@ void PlayerbotAI::HandleCommand(uint32 type, std::string const text, Player* fro
-     {
-         chatCommands.push_back(ChatCommandHolder(filtered, fromPlayer, type));
-     }
-+
- }
- 
- void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
-@@ -2852,6 +2873,15 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
+@@ -3050,6 +3070,15 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text, PlayerbotSecurityLe
          ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
                                       type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL, bot, nullptr, text.c_str());
          master->SendDirectMessage(&data);
@@ -68,19 +60,19 @@ index 96019402..774f98ef 100644
  
      return true;
 diff --git i/src/Bot/PlayerbotAI.h w/src/Bot/PlayerbotAI.h
-index 3364b31a..aa28e536 100644
+index 9c87cdb3..bfd62ff2 100644
 --- i/src/Bot/PlayerbotAI.h
 +++ w/src/Bot/PlayerbotAI.h
-@@ -531,6 +531,8 @@ public:
+@@ -539,6 +539,8 @@ public:
      Player* GetBot() { return bot; }
      Player* GetMaster() { return master; }
      Player* FindNewMaster();
 +    Player* GetReplyTarget() { return replyTarget; }
 +    void SetReplyTarget(Player* target) { replyTarget = target; }
  
-     // Checks if the bot is really a player. Players always have themselves as master.
-     bool IsRealPlayer() { return master ? (master == bot) : false; }
-@@ -629,6 +631,7 @@ private:
+     // Get the group leader or the master of the bot.
+     // Checks if the bot is summoned an altbot of a player
+@@ -631,6 +633,7 @@ private:
  protected:
      Player* bot;
      Player* master;
