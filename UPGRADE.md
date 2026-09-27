@@ -258,6 +258,12 @@ lost, retag from `:pre-upgrade-20260927`.
   3.1 GB) so the old v19 volume stays for rollback. Cost: 9 min of extra
   downtime for the download. Next time, download the data before the
   switch-over.
+- **Tools outside this repo point at the tree by path.**
+  `~/srv/tuicraft-factory/sweep.sh` ran `mise -C ~/code/azerothcore-modplayerbots`
+  (the old tree). Changed to the new tree after the switch-over. The old copy
+  is at `files/sweep.sh.pre-upgrade` in the backup. It still worked because
+  both trees use the same containers, but it would have failed when the old
+  tree was removed.
 
 ## Checklist for the next upgrade
 
@@ -283,4 +289,6 @@ lost, retag from `:pre-upgrade-20260927`.
 9. Rehearse on a scratch DB copy; grep its `Server.log` for `MMAP`, `ERROR`,
    `expected`.
 10. Switch over and verify as above.
-11. Keep the old tree and images until the maintainer says they can go.
+11. Point outside tools at the new tree:
+    `grep -rn azerothcore-modplayerbots ~/srv`.
+12. Keep the old tree and images until the maintainer says they can go.
